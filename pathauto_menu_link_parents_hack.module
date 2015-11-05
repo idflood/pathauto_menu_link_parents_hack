@@ -1,0 +1,51 @@
+<?php
+
+/**
+ * @file
+ * Contains pathauto_menu_link_parents_hack.module.
+ */
+
+use Drupal\Core\Entity\EntityInterface;
+
+/**
+ * Implements hook_entity_insert().
+ */
+function pathauto_menu_link_parents_hack_entity_insert(EntityInterface $entity) {
+  _pathauto_menu_link_parents_hack_fix_alias($entity);
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function pathauto_menu_link_parents_hack_entity_update(EntityInterface $entity) {
+  _pathauto_menu_link_parents_hack_fix_alias($entity);
+}
+
+function _pathauto_menu_link_parents_hack_fix_alias(EntityInterface $entity) {
+  global $pathauto_save_next_menu_link;
+  if ($entity->getEntityTypeId() === 'node') {
+    $pathauto_save_next_menu_link = TRUE;
+  }
+  if ($entity->getEntityTypeId() === 'menu_link_content' && $pathauto_save_next_menu_link) {
+    // Rebuild the menu links.
+    $menu_link_manager = \Drupal::service('plugin.manager.menu.link');
+    $menu_link_manager->rebuild();
+
+    $uri = $entity->link->first()->uri;
+    $nid = intval(str_replace('entity:node/', '', $uri));
+    $storage = \Drupal::entityManager()->getStorage('node');
+
+    // Reset some caches.
+    $storage->resetCache(array($nid));
+    // Clear the cache used in token_menu_link_load_all_parents().
+    $pluginId = $entity->getPluginId();
+    // drupal_static_reset($pluginId);
+    // Another cache make the above function not working so we clear all caches.
+    drupal_static_reset();
+    $node = \Drupal\node\Entity\Node::load($nid);
+
+    \Drupal::entityManager()->getStorage('menu_link_content')->resetCache();
+    \Drupal::service('pathauto.manager')->updateAlias($node, 'update', array('force' => TRUE));
+    $pathauto_save_next_menu_link = FALSE;
+  }
+}
