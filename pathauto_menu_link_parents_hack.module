@@ -32,7 +32,7 @@ function _pathauto_menu_link_parents_hack_fix_alias(EntityInterface $entity) {
     // Clear the cache used in token_menu_link_load_all_parents().
     drupal_static_reset('token_menu_link_load_all_parents');
 
-    \Drupal::service('pathauto.manager')->updateAlias($pathauto_resave_node, 'update', array('force' => TRUE));
+    \Drupal::service('pathauto.generator')->updateEntityAlias($pathauto_resave_node, 'update', array('force' => TRUE));
     $pathauto_resave_node = FALSE;
   }
 }
